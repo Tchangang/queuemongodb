@@ -1,0 +1,27 @@
+{
+  "devDependencies": {
+    "@types/jest": "^24.0.19",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.1.0",
+    "typescript": "^3.6.4",
+    "webpack": "^4.41.2"
+  },
+  "name": "queuemongodb",
+  "version": "1.0.0",
+  "description": "Queue system that work with mongodb",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Tchangang Boris-Emmanuel",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --coverage",
+    "watch": "jest --watch --coverage",
+    "publish": "yarn build && yarn publish"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/mongodb": "^3.3.6",
+    "@types/node": "^12.11.2",
+    "mongodb": "^3.3.3"
+  }
+}
