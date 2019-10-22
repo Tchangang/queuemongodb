@@ -49,12 +49,13 @@ class DBDequeur implements DBDequeuerInterface{
         if (params.refreshDelay) {
             this.refreshDelay = params.refreshDelay;
         }
-        this.getNextJobs();
         if (!params.dbRepo) {
+            console.log('there');
             this.db = new DBRepo(this.mongoURI, this.dbName, this.collectionName);
         } else {
             this.db = params.dbRepo;
         }
+        this.getNextJobs();
     }
     private getNextJobs() {
         this.timer = setTimeout(async () => {
@@ -140,19 +141,19 @@ class DBDequeur implements DBDequeuerInterface{
     }
     async on(eventType: string,
              max: number = 5,
-             callback: (job: JobJSON, complete?: (successParams?: any) => Promise<void>, requeue?: (failedParams?: any) => Promise<void>) => any): Promise<void> {
+             callback: (job: JobJSON, complete: (successParams?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any): Promise<void> {
         if (!this.eventsList[eventType]) {
             this.eventsList[eventType] = {
-                max: 0,
+                max,
                 current: 0,
             };
-            this.emitter.on(eventType, (jobToExecute) => {
+            this.emitter.on(eventType, (jobToExecute: JobJSON) => {
                 this.increaseCurrentType(jobToExecute.type);
                 const complete = async (successParams?: any) => {
-                    await this.complete(jobToExecute.id, successParams);
+                    await this.complete(jobToExecute, successParams);
                 };
                 const requeue = async (failedParams?: any) => {
-                    await this.requeue(jobToExecute.id, failedParams);
+                    await this.requeue(jobToExecute, failedParams);
                 };
                 try {
                     callback(jobToExecute, complete.bind(this), requeue.bind(this));

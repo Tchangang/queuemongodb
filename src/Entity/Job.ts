@@ -80,6 +80,7 @@ class Job {
         this.status = 'success';
         this.doneAt = new Date().getTime();
         this.available = false;
+        this.inProgress = false;
         if (typeof successParams !== 'undefined') {
             this.addLog('Job done successfully at '.concat(new Date().toString()).concat(' with answer: ').concat(JSON.stringify(successParams || {})));
         } else {
