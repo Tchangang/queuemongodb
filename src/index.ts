@@ -165,5 +165,4 @@ class DBDequeur implements DBDequeuerInterface{
         }
     }
 }
-
-export default DBDequeur;
+export = DBDequeur;
