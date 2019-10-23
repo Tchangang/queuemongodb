@@ -38,7 +38,6 @@ class DBRepo implements DBRepoInterface {
             let cpt = 0;
             const timeoutCpt = Math.ceil(30000 / 200);
             let interval = setInterval(() => {
-                console.log('isReady', this.isReady);
                 if (this.isReady) {
                     clearInterval(interval);
                     return resolve();
@@ -98,8 +97,6 @@ class DBRepo implements DBRepoInterface {
             retry: toUpdateData.retry,
             available: toUpdateData.available,
         };
-        console.log('toypdate', toUpdate);
-        console.log('new ObjectId(toUpdateData.id!)', new ObjectId(toUpdateData.id!));
         await collection.findOneAndUpdate({ _id: new ObjectId(toUpdateData.id!) }, { $set: toUpdate }, { returnOriginal: false });
     }
 }
