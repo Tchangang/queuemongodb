@@ -65,6 +65,27 @@ class DBRepo implements DBRepoInterface {
         const collection = await this.getCollection();
         await collection.insertOne(toInsert);
     }
+    async checkForActionScheduled(type: string, customIdentifier: string | number) {
+        const collection = await this.getCollection();
+        const updated = await collection.findOne({ type, customIdentifier, scheduledAt: { $gt: new Date().getTime() } });
+        if (!updated) {
+            return null;
+        }
+        return {
+            id: updated._id.toString(),
+            type: updated.type,
+            available: updated.available,
+            data: updated.data,
+            status: updated.status,
+            inProgress: updated.inProgress,
+            createdAt: updated.createdAt,
+            scheduledAt: updated.scheduledAt,
+            retry: updated.retry,
+            doneAt: updated.doneAt,
+            customIdentifier: updated.customIdentifier,
+            logs: updated.logs,
+        }
+    }
     async dequeueJob(jobType: string, quantity: number): Promise<Array<JobJSON>> {
         const collection = await this.getCollection();
         const toExecute = [];

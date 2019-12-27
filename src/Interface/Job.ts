@@ -16,6 +16,7 @@ type JobJSON = {
     scheduledAt: number,
     retry: number,
     doneAt: Nullable<number>,
+    customIdentifier: Nullable<string | number>,
     logs: Array<JobLog>,
 }
 

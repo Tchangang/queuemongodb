@@ -83,11 +83,23 @@ class DBDequeur implements DBDequeuerInterface{
             this.timer = null;
         }
     }
-    async add(jobType: string, data: any): Promise<void> {
-        const job = new Job({
+    async add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number): Promise<void> {
+        const jobParams: {
+            type: string,
+            data: any,
+            scheduledAt?: number,
+            customIdentifier?: string | number,
+        } = {
             type: jobType,
             data,
-        });
+        };
+        if (typeof scheduledAt === 'number') {
+            jobParams.scheduledAt = scheduledAt;
+        }
+        if (typeof customIdenfitier === 'string' || typeof customIdenfitier === 'number') {
+            jobParams.customIdentifier = customIdenfitier;
+        }
+        const job = new Job(jobParams);
         await this.db.add(job);
     }
     private decreaseCurrentType(type: string, number = 1) {
