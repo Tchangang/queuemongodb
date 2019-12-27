@@ -7,7 +7,7 @@
     "webpack": "^4.41.2"
   },
   "name": "queuemongodb",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Queue system that work with mongodb",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,7 @@
     "build": "tsc",
     "test": "jest --coverage",
     "watch": "jest --watch --coverage",
+    "start": "node ./dist/index",
     "publish-now": "yarn build && yarn version --patch && yarn publish"
   },
   "license": "MIT",
