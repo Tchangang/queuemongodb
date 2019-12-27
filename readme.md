@@ -15,9 +15,20 @@
 
 ##Create job
 ```javascript
-    async jobHandler.add(jobType: string, jobData: any);
-    Ex: await jobHandler.add('findemail', { firstname: 'boris', lastname: 'tchangang', domain: 'adomain.com' });
+    async jobHandler.add(jobType: string, jobData: any, scheduledAt?: number, customIdentifier?: string | number);
+    // schedule job in 20 minutes
+    Ex: await jobHandler.add('findemail', { firstname: 'boris', lastname: 'tchangang', domain: 'adomain.com' }, (new Date().getTime() + 20 * 3600 * 1000), 'scheduledAt-me-now'); 
 ```
+Last parameter 'scheduledAt-me-now' in the example above is an identifier to identify an action in the queue.
+You can use this identifier later to check if an action is already waiting to be played in the queue.
+
+##Retrieve a job
+```javascript
+    async jobHandler.checkForActionScheduled(jobType: string, customIdentifier: string | number);
+    // schedule job in 20 minutes
+    Ex: await jobHandler.checkForActionScheduled('findemail', 'scheduledAt-me-now'); 
+```
+You can use this action to check if something similar is already pending in the queue.
 
 ## Handle job
 ````javascript
