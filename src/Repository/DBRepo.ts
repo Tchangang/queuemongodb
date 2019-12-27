@@ -27,6 +27,10 @@ class DBRepo implements DBRepoInterface {
         }, (err, client) => {
             this.client = client.db(dbName);
             this.collectionCursor = this.client.collection(collectionName);
+            this.collectionCursor.createIndex( {
+                type: 1, available: 1, inProgress: 1, scheduledAt: 1, customIdentifier: 1 }, { sparse: true } )
+                .then(() => {})
+                .catch(() => {});
             this.isReady = true;
         });
     }
@@ -67,7 +71,13 @@ class DBRepo implements DBRepoInterface {
     }
     async checkForActionScheduled(type: string, customIdentifier: string | number) {
         const collection = await this.getCollection();
-        const updated = await collection.findOne({ type, customIdentifier, scheduledAt: { $gt: new Date().getTime() } });
+        const updated = await collection.findOne({
+            type,
+            available: true,
+            inProgress: false,
+            scheduledAt: { $gt: new Date().getTime() },
+            customIdentifier,
+        });
         if (!updated) {
             return null;
         }
@@ -92,9 +102,9 @@ class DBRepo implements DBRepoInterface {
         for (let i = 0; i < quantity; i += 1) {
             toExecute.push(collection.findOneAndUpdate({
                 type: jobType,
-                scheduledAt: { $lt: new Date().getTime() },
-                inProgress: false,
                 available: true,
+                inProgress: false,
+                scheduledAt: { $lt: new Date().getTime() },
             }, { $set: { inProgress: true } }, { sort: { _id: 1 }, returnOriginal: false }));
         }
         const found = await Promise.all(toExecute);
