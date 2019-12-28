@@ -5,6 +5,8 @@ import {setInterval} from 'timers';
 import convertDataToJob from './JobDto';
 import Nullable from '../Interface/Nullable';
 
+let clients: {[k: string]: MongoClient} = {};
+
 class DBRepo implements DBRepoInterface {
     private isReady: boolean = false;
     private client: Nullable<Db>;
@@ -21,18 +23,26 @@ class DBRepo implements DBRepoInterface {
         if (!collectionName) {
             throw new Error('Missing collectionName');
         }
-        MongoClient.connect(mongoUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        }, (err, client) => {
-            this.client = client.db(dbName);
+        const identifier = `${mongoUri}-${dbName}-${collectionName}`;
+        if (clients[identifier]) {
+            this.client = clients[identifier].db(dbName);
             this.collectionCursor = this.client.collection(collectionName);
-            this.collectionCursor.createIndex( {
-                type: 1, available: 1, inProgress: 1, scheduledAt: 1, customIdentifier: 1 }, { sparse: true } )
-                .then(() => {})
-                .catch(() => {});
             this.isReady = true;
-        });
+        } else {
+            MongoClient.connect(mongoUri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            }, (err, client) => {
+                clients[identifier] = client;
+                this.client = client.db(dbName);
+                this.collectionCursor = this.client.collection(collectionName);
+                this.collectionCursor.createIndex( {
+                    type: 1, available: 1, inProgress: 1, scheduledAt: 1, customIdentifier: 1 }, { sparse: true } )
+                    .then(() => {})
+                    .catch(() => {});
+                this.isReady = true;
+            });
+        }
     }
     private async waitUntilReady(): Promise<void> {
         return new Promise((resolve) => {
