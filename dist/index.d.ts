@@ -39,7 +39,8 @@ declare class DBDequeur implements DBDequeuerInterface {
     private increaseCurrentType;
     private complete;
     private requeue;
+    getAction(customIdentifier: string | number): Promise<Nullable<JobJSON>>;
     checkForActionScheduled(type: string, customIdentifier: string): Promise<Nullable<JobJSON>>;
-    on(eventType: string, max: number | undefined, callback: (job: JobJSON, complete: (successParams?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any): Promise<void>;
+    on(eventType: string, max: number, callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any): Promise<void>;
 }
 export = DBDequeur;

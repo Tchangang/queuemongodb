@@ -16,5 +16,6 @@ declare type JobJSON = {
     doneAt: Nullable<number>;
     customIdentifier: Nullable<string | number>;
     logs: Array<JobLog>;
+    results?: any;
 };
 export { JobJSON, JobLog, };

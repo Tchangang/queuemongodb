@@ -8,6 +8,7 @@ declare class DBRepo implements DBRepoInterface {
     private waitUntilReady;
     private getCollection;
     add(toAdd: JobJSON): Promise<void>;
+    getJob(customIdentifier: string | number): Promise<null | JobJSON>;
     checkForActionScheduled(type: string, customIdentifier: string | number): Promise<null | JobJSON>;
     dequeueJob(jobType: string, quantity: number): Promise<Array<JobJSON>>;
     update(toUpdateData: JobJSON): Promise<void>;

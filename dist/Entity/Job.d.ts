@@ -12,6 +12,7 @@ declare class Job {
     doneAt: Nullable<number>;
     available: boolean;
     logs: Array<JobLog>;
+    results: any;
     customIdentifier: Nullable<string | number>;
     constructor(params: {
         id?: string;
@@ -26,6 +27,7 @@ declare class Job {
         available?: boolean;
         logs?: Array<JobLog>;
         customIdentifier?: string | number;
+        results?: any;
     });
     json(): JobJSON;
     addLog(log: string): void;

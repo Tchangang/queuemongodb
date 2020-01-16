@@ -135,6 +135,7 @@ class DBRepo implements DBRepoInterface {
             scheduledAt: toUpdateData.scheduledAt,
             retry: toUpdateData.retry,
             available: toUpdateData.available,
+            results: toUpdateData.results,
         };
         await collection.findOneAndUpdate({ _id: new ObjectId(toUpdateData.id!) }, { $set: toUpdate }, { returnOriginal: false });
     }
