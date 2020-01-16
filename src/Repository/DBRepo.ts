@@ -79,7 +79,7 @@ class DBRepo implements DBRepoInterface {
         const collection = await this.getCollection();
         await collection.insertOne(toInsert);
     }
-    async getJob(customIdentifier: string): Promise<null | JobJSON> {
+    async getJob(customIdentifier: string | number): Promise<null | JobJSON> {
         if (!customIdentifier) {
             return null;
         }

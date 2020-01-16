@@ -152,7 +152,7 @@ class DBDequeur implements DBDequeuerInterface{
         }
         await this.db.update(job.json());
     }
-    async getAction(customIdentifier: string): Promise<Nullable<JobJSON>> {
+    async getAction(customIdentifier: string | number): Promise<Nullable<JobJSON>> {
         return this.db.getJob(customIdentifier);
     }
     async checkForActionScheduled(type: string, customIdentifier: string): Promise<Nullable<JobJSON>> {
