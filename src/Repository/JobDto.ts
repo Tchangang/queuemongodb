@@ -37,6 +37,9 @@ export default (data: any): JobJSON => {
         if (data.logs) {
             job.logs = data.logs;
         }
+        if (data.results) {
+            job.results = data.results;
+        }
         return job.json();
     }
     throw new Error('Unable to convert data from db to job');

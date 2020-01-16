@@ -13,6 +13,7 @@ class Job {
     doneAt: Nullable<number>;
     available = true;
     logs: Array<JobLog> = [];
+    results: any;
     customIdentifier: Nullable<string | number> = null;
     constructor(params: {
         id?: string,
@@ -27,6 +28,7 @@ class Job {
         available?: boolean,
         logs?: Array<JobLog>,
         customIdentifier?: string | number,
+        results?: any,
     }) {
         if (params.id) {
             this.id = params.id;
@@ -62,6 +64,9 @@ class Job {
         if (typeof params.customIdentifier === 'string' || typeof params.customIdentifier === 'number') {
             this.customIdentifier = params.customIdentifier;
         }
+        if (params.results) {
+            this.results = params.results;
+        }
     }
     json(): JobJSON {
         return {
@@ -77,6 +82,7 @@ class Job {
             doneAt: this.doneAt,
             logs: this.logs,
             customIdentifier: this.customIdentifier,
+            results: this.results,
         };
     }
     addLog(log: string) {

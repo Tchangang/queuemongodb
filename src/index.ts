@@ -57,7 +57,7 @@ class DBDequeur implements DBDequeuerInterface{
         }
         this.getNextJobs();
     }
-    private getNextJobs() {
+    private async getNextJobs(): Promise<void> {
         this.timer = setTimeout(async () => {
             const keys = Object.keys(this.eventsList);
             const toExecute:Array<Promise<Array<JobJSON>>> = [];
@@ -124,6 +124,7 @@ class DBDequeur implements DBDequeuerInterface{
             scheduledAt: jobData.scheduledAt,
             retry: jobData.retry,
             logs: jobData.logs,
+            results: jobData.results,
         });
         job.complete(successParams);
         this.decreaseCurrentType(job.type);
@@ -151,9 +152,22 @@ class DBDequeur implements DBDequeuerInterface{
         }
         await this.db.update(job.json());
     }
+    async getAction(customIdentifier: string): Promise<Nullable<JobJSON>> {
+        return this.db.getJob(customIdentifier);
+    }
+    async checkForActionScheduled(type: string, customIdentifier: string): Promise<Nullable<JobJSON>> {
+        if (typeof type !== 'string' || type.length === 0) {
+            return null;
+        }
+        if (typeof customIdentifier !== 'string' || customIdentifier.length === 0) {
+            return null;
+        }
+        return this.db.checkForActionScheduled(type, customIdentifier);
+    }
     async on(eventType: string,
              max: number = 5,
-             callback: (job: JobJSON, complete: (successParams?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any): Promise<void> {
+             callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>,
+             requeue: (failedParams?: any) => Promise<void>) => any): Promise<void> {
         if (!this.eventsList[eventType]) {
             this.eventsList[eventType] = {
                 max,
@@ -161,8 +175,8 @@ class DBDequeur implements DBDequeuerInterface{
             };
             this.emitter.on(eventType, (jobToExecute: JobJSON) => {
                 this.increaseCurrentType(jobToExecute.type);
-                const complete = async (successParams?: any) => {
-                    await this.complete(jobToExecute, successParams);
+                const complete = async (successParams?: any, results?: any) => {
+                    await this.complete({ ...jobToExecute, results }, successParams);
                 };
                 const requeue = async (failedParams?: any) => {
                     await this.requeue(jobToExecute, failedParams);
