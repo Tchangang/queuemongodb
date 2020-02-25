@@ -136,7 +136,7 @@ class DBDequeur implements DBDequeuerInterface{
             type: jobData.type,
             data: jobData.data,
             status: jobData.status,
-            inProgress: jobData.inProgress,
+            inProgress: false,
             createdAt: jobData.createdAt,
             scheduledAt: jobData.scheduledAt,
             retry: jobData.retry,
