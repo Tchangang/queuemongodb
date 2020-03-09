@@ -14,7 +14,10 @@ declare class DBDequeur implements DBDequeuerInterface {
     eventsList: {
         [K: string]: {
             max: number;
-            current: 0;
+            current: number;
+            maxOnPeriod: number;
+            currentOnPeriod: number;
+            limitReached: boolean;
         };
     };
     db: DBRepoInterface;
@@ -22,6 +25,7 @@ declare class DBDequeur implements DBDequeuerInterface {
     static JobTypes: {
         maxRetry: string;
         dequeue: string;
+        resetPeriodCount: string;
     };
     constructor(params: {
         mongoURI: string;
@@ -32,6 +36,7 @@ declare class DBDequeur implements DBDequeuerInterface {
         refreshDelay?: number;
         dbRepo?: DBRepoInterface;
     });
+    private handleResetPeriodCount;
     private getNextJobs;
     stop(): void;
     add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number): Promise<void>;
@@ -41,6 +46,6 @@ declare class DBDequeur implements DBDequeuerInterface {
     private requeue;
     getAction(customIdentifier: string | number): Promise<Nullable<JobJSON>>;
     checkForActionScheduled(type: string, customIdentifier: string): Promise<Nullable<JobJSON>>;
-    on(eventType: string, max: number, callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any): Promise<void>;
+    on(eventType: string, max: number, callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>, requeue: (failedParams?: any) => Promise<void>) => any, limit?: string): Promise<void>;
 }
 export = DBDequeur;

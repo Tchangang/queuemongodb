@@ -15,13 +15,17 @@ class DBDequeur implements DBDequeuerInterface{
     refreshDelay = 500;
     eventsList: {[K: string]: {
         max: number,
-        current: 0,
+        current: number,
+        maxOnPeriod: number,
+        currentOnPeriod: number,
+        limitReached: boolean,
     }};
     db: DBRepoInterface;
     timer: Nullable<NodeJS.Timeout>;
     static JobTypes = {
         maxRetry: 'MAX_RETRY',
         dequeue: 'DEQUEUE',
+        resetPeriodCount: 'RESET_PERIOD_COUNT',
     };
     constructor(params: {
                     mongoURI: string,
@@ -50,19 +54,43 @@ class DBDequeur implements DBDequeuerInterface{
             this.refreshDelay = params.refreshDelay;
         }
         if (!params.dbRepo) {
-            console.log('there');
             this.db = new DBRepo(this.mongoURI, this.dbName, this.collectionName);
         } else {
             this.db = params.dbRepo;
         }
-        this.getNextJobs();
+        this.handleResetPeriodCount();
+        this.emitter.emit(DBDequeur.JobTypes.dequeue);
     }
-    private async getNextJobs(): Promise<void> {
+    private handleResetPeriodCount() {
+        this.emitter.on(DBDequeur.JobTypes.resetPeriodCount, (args) => {
+            if (typeof args === 'object' && args && Object(args).hasOwnProperty('event') && typeof args.event === 'string'
+                && Object(args).hasOwnProperty('delay') && typeof args.delay === 'number') {
+                const localTimeout = setTimeout(() => {
+                    if (this.eventsList[args.event]) {
+                        this.eventsList[args.event].currentOnPeriod = 0;
+                        this.eventsList[args.event].limitReached = false;
+                    }
+                    clearTimeout(localTimeout);
+                    this.emitter.emit(DBDequeur.JobTypes.resetPeriodCount, args);
+                }, args.delay);
+            }
+        });
+    }
+    private getNextJobs() {
         this.timer = setTimeout(async () => {
             const keys = Object.keys(this.eventsList);
             const toExecute:Array<Promise<Array<JobJSON>>> = [];
             for (let i = 0; i < keys.length; i += 1) {
-                const quantityDequeable = this.eventsList[keys[i]].max - this.eventsList[keys[i]].current;
+                let quantityDequeable = 0;
+                if (this.eventsList[keys[i]].maxOnPeriod > 0) {
+                    if (!this.eventsList[keys[i]].limitReached) {
+                        quantityDequeable = Math.min(this.eventsList[keys[i]].max - this.eventsList[keys[i]].current,
+                            this.eventsList[keys[i]].maxOnPeriod - this.eventsList[keys[i]].currentOnPeriod);
+                    }
+                } else {
+                    quantityDequeable = this.eventsList[keys[i]].max - this.eventsList[keys[i]].current;
+                }
+                console.log(keys[i], quantityDequeable);
                 if (quantityDequeable > 0) {
                     toExecute.push(this.db.dequeueJob(keys[i], quantityDequeable));
                 }
@@ -73,8 +101,9 @@ class DBDequeur implements DBDequeuerInterface{
                    this.emitter.emit(item.type, item);
                });
             });
-            this.emitter.emit(DBDequeur.JobTypes.dequeue);
+            clearTimeout(this.timer);
             this.timer = null;
+            this.emitter.emit(DBDequeur.JobTypes.dequeue);
         }, this.refreshDelay);
     }
     stop() {
@@ -110,6 +139,10 @@ class DBDequeur implements DBDequeuerInterface{
     private increaseCurrentType(type: string, number = 1) {
         if (this.eventsList[type]) {
             this.eventsList[type].current += number;
+            this.eventsList[type].currentOnPeriod += number;
+            if (this.eventsList[type].currentOnPeriod >= this.eventsList[type].maxOnPeriod) {
+                this.eventsList[type].limitReached = true;
+            }
         }
     }
     private async complete(jobData: JobJSON, successParams: any) {
@@ -167,11 +200,15 @@ class DBDequeur implements DBDequeuerInterface{
     async on(eventType: string,
              max: number = 5,
              callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>,
-             requeue: (failedParams?: any) => Promise<void>) => any): Promise<void> {
+                requeue: (failedParams?: any) => Promise<void>) => any,
+             limit?: string): Promise<void> {
         if (!this.eventsList[eventType]) {
             this.eventsList[eventType] = {
                 max,
                 current: 0,
+                maxOnPeriod: 0,
+                currentOnPeriod: 0,
+                limitReached: false,
             };
             this.emitter.on(eventType, (jobToExecute: JobJSON) => {
                 this.increaseCurrentType(jobToExecute.type);
@@ -188,6 +225,48 @@ class DBDequeur implements DBDequeuerInterface{
                         .then(() => {});
                 }
             });
+            if (limit && typeof limit === 'string' && limit.length >= 4) {
+                const infos = limit.toLowerCase().split('/');
+                const maxOnPeriod = (infos.length === 2 && parseInt(infos[0], 10)) || null;
+                console.log('maxOnPeriod', maxOnPeriod);
+                const delayNumber = (infos.length === 2 && infos[1].match(/\d+/g) && infos[1].match(/\d+/g)[0]
+                    && parseInt(infos[1].match(/\d+/g)[0])) || 1;
+                const delayType = (infos.length === 2 && infos[1].replace(/\d+/g, '').toLowerCase()) || null;
+                console.log(maxOnPeriod);
+                console.log(delayType);
+                console.log(delayNumber);
+                if (maxOnPeriod && delayNumber && delayType && ['second', 'minute', 'hour', 'day', 'week', 'month'].includes(delayType)) {
+                    this.eventsList[eventType].maxOnPeriod = maxOnPeriod;
+                    this.eventsList[eventType].currentOnPeriod = 0;
+                    let delay = delayNumber;
+                    switch (delayType) {
+                        case 'second':
+                            delay = delay * 1000;
+                            break;
+                        case 'minute':
+                            delay = delay * 1000 * 60;
+                            break;
+                        case 'hour':
+                            delay = delay * 1000 * 60 * 60;
+                            break;
+                        case 'day':
+                            delay = delay * 1000 * 60 * 60 * 24;
+                            break;
+                        case 'week':
+                            delay = delay * 1000 * 60 * 60 * 24 * 7;
+                            break;
+                        case 'month':
+                            delay = delay * 1000 * 60 * 60 * 24 * 30;
+                            break;
+                        default:
+                            delay = 0;
+                            break;
+                    }
+                    if (delay > 0) {
+                        this.emitter.emit(DBDequeur.JobTypes.resetPeriodCount, { event: eventType, delay });
+                    }
+                }
+            }
         }
     }
 }
