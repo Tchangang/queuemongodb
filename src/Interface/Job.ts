@@ -19,6 +19,7 @@ type JobJSON = {
     customIdentifier: Nullable<string | number>,
     logs: Array<JobLog>,
     results?: any,
+    priority: number,
 }
 
 export {

@@ -40,6 +40,9 @@ class DBRepo implements DBRepoInterface {
                     type: 1, available: 1, inProgress: 1, scheduledAt: 1, customIdentifier: 1 }, { sparse: true } )
                     .then(() => {})
                     .catch(() => {});
+                this.collectionCursor.createIndex( { priority: 1 }, { sparse: true } )
+                    .then(() => {})
+                    .catch(() => {});
                 this.isReady = true;
             });
         }
@@ -113,7 +116,7 @@ class DBRepo implements DBRepoInterface {
                 available: true,
                 inProgress: false,
                 scheduledAt: { $lt: new Date().getTime() },
-            }, { $set: { inProgress: true } }, { sort: { _id: 1 }, returnOriginal: false }));
+            }, { $set: { inProgress: true } }, { sort: { priority: 1, _id: 1 }, returnOriginal: false }));
         }
         const found = await Promise.all(toExecute);
         const jobs: Array<JobJSON> = [];

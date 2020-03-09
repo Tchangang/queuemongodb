@@ -7,6 +7,7 @@ class Job {
     data: Nullable<any>;
     status: | 'inqueue' | 'success' | 'failed' = 'inqueue';
     inProgress = false;
+    priority: number = 1;
     createdAt = new Date().getTime();
     scheduledAt = new Date().getTime();
     retry: number = 0;
@@ -29,6 +30,7 @@ class Job {
         logs?: Array<JobLog>,
         customIdentifier?: string | number,
         results?: any,
+        priority?: number,
     }) {
         if (params.id) {
             this.id = params.id;
@@ -67,6 +69,9 @@ class Job {
         if (params.results) {
             this.results = params.results;
         }
+        if (params.priority) {
+            this.priority = params.priority;
+        }
     }
     json(): JobJSON {
         return {
@@ -83,6 +88,7 @@ class Job {
             logs: this.logs,
             customIdentifier: this.customIdentifier,
             results: this.results,
+            priority: this.priority,
         };
     }
     addLog(log: string) {

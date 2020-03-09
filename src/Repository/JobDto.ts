@@ -40,6 +40,9 @@ export default (data: any): JobJSON => {
         if (data.results) {
             job.results = data.results;
         }
+        if (data.priority) {
+            job.priority = data.priority;
+        }
         return job.json();
     }
     throw new Error('Unable to convert data from db to job');
