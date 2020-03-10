@@ -6,6 +6,7 @@ declare class Job {
     data: Nullable<any>;
     status: 'inqueue' | 'success' | 'failed';
     inProgress: boolean;
+    priority: number;
     createdAt: number;
     scheduledAt: number;
     retry: number;
@@ -28,6 +29,7 @@ declare class Job {
         logs?: Array<JobLog>;
         customIdentifier?: string | number;
         results?: any;
+        priority?: number;
     });
     json(): JobJSON;
     addLog(log: string): void;

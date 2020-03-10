@@ -16,8 +16,8 @@ declare class DBDequeur implements DBDequeuerInterface {
             max: number;
             current: number;
             maxOnPeriod: number;
-            currentOnPeriod: number;
-            limitReached: boolean;
+            delay: number;
+            lists: Array<number>;
         };
     };
     db: DBRepoInterface;
@@ -36,7 +36,7 @@ declare class DBDequeur implements DBDequeuerInterface {
         refreshDelay?: number;
         dbRepo?: DBRepoInterface;
     });
-    private handleResetPeriodCount;
+    private removeOldJob;
     private getNextJobs;
     stop(): void;
     add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number): Promise<void>;

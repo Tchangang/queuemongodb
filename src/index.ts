@@ -4,6 +4,8 @@ import Nullable from './Interface/Nullable';
 import {DBDequeuerInterface, DBRepoInterface} from './Interface/DBDequeuer';
 import DBRepo from './Repository/DBRepo';
 import Job from './Entity/Job';
+import {countActionsDoneSince, removeOldActionsDoneOlderThan} from './Repository/countDoneSinceDate';
+import {getRateLimitFromStr} from './Repository/getRateLimitFromStr';
 
 class DBDequeur implements DBDequeuerInterface{
     emitter: EventEmitter;
@@ -17,8 +19,8 @@ class DBDequeur implements DBDequeuerInterface{
         max: number,
         current: number,
         maxOnPeriod: number,
-        currentOnPeriod: number,
-        limitReached: boolean,
+        delay: number,
+        lists: Array<number>,
     }};
     db: DBRepoInterface;
     timer: Nullable<NodeJS.Timeout>;
@@ -39,6 +41,7 @@ class DBDequeur implements DBDequeuerInterface{
         this.emitter = new EventEmitter();
         this.emitter.on(DBDequeur.JobTypes.dequeue, () => {
            this.getNextJobs();
+           this.removeOldJob();
         });
         this.collectionName = params.collectionName;
         this.mongoURI = params.mongoURI;
@@ -58,23 +61,16 @@ class DBDequeur implements DBDequeuerInterface{
         } else {
             this.db = params.dbRepo;
         }
-        this.handleResetPeriodCount();
         this.emitter.emit(DBDequeur.JobTypes.dequeue);
     }
-    private handleResetPeriodCount() {
-        this.emitter.on(DBDequeur.JobTypes.resetPeriodCount, (args) => {
-            if (typeof args === 'object' && args && Object(args).hasOwnProperty('event') && typeof args.event === 'string'
-                && Object(args).hasOwnProperty('delay') && typeof args.delay === 'number') {
-                const localTimeout = setTimeout(() => {
-                    if (this.eventsList[args.event]) {
-                        this.eventsList[args.event].currentOnPeriod = 0;
-                        this.eventsList[args.event].limitReached = false;
-                    }
-                    clearTimeout(localTimeout);
-                    this.emitter.emit(DBDequeur.JobTypes.resetPeriodCount, args);
-                }, args.delay);
+    private removeOldJob() {
+        const keys = Object.keys(this.eventsList);
+        for (let i = 0; i < keys.length; i += 1) {
+            if (this.eventsList[keys[i]] && this.eventsList[keys[i]].delay > 0) {
+                const fromDate = new Date().getTime() - this.eventsList[keys[i]].delay;
+                removeOldActionsDoneOlderThan(fromDate, this.eventsList[keys[i]].lists);
             }
-        });
+        }
     }
     private getNextJobs() {
         this.timer = setTimeout(async () => {
@@ -82,15 +78,14 @@ class DBDequeur implements DBDequeuerInterface{
             const toExecute:Array<Promise<Array<JobJSON>>> = [];
             for (let i = 0; i < keys.length; i += 1) {
                 let quantityDequeable = 0;
-                if (this.eventsList[keys[i]].maxOnPeriod > 0) {
-                    if (!this.eventsList[keys[i]].limitReached) {
-                        quantityDequeable = Math.min(this.eventsList[keys[i]].max - this.eventsList[keys[i]].current,
-                            this.eventsList[keys[i]].maxOnPeriod - this.eventsList[keys[i]].currentOnPeriod);
-                    }
+                if (this.eventsList[keys[i]].maxOnPeriod > 0 && this.eventsList[keys[i]].delay > 0) {
+                    const fromDate = new Date().getTime() - this.eventsList[keys[i]].delay;
+                    const actionsExecuted = countActionsDoneSince(fromDate, this.eventsList[keys[i]].lists);
+                    quantityDequeable = Math.min(this.eventsList[keys[i]].max - this.eventsList[keys[i]].current,
+                        this.eventsList[keys[i]].maxOnPeriod - actionsExecuted);
                 } else {
                     quantityDequeable = this.eventsList[keys[i]].max - this.eventsList[keys[i]].current;
                 }
-                console.log(keys[i], quantityDequeable);
                 if (quantityDequeable > 0) {
                     toExecute.push(this.db.dequeueJob(keys[i], quantityDequeable));
                 }
@@ -139,10 +134,7 @@ class DBDequeur implements DBDequeuerInterface{
     private increaseCurrentType(type: string, number = 1) {
         if (this.eventsList[type]) {
             this.eventsList[type].current += number;
-            this.eventsList[type].currentOnPeriod += number;
-            if (this.eventsList[type].currentOnPeriod >= this.eventsList[type].maxOnPeriod) {
-                this.eventsList[type].limitReached = true;
-            }
+            this.eventsList[type].lists.push(new Date().getTime());
         }
     }
     private async complete(jobData: JobJSON, successParams: any) {
@@ -207,8 +199,8 @@ class DBDequeur implements DBDequeuerInterface{
                 max,
                 current: 0,
                 maxOnPeriod: 0,
-                currentOnPeriod: 0,
-                limitReached: false,
+                delay: 0,
+                lists: [],
             };
             this.emitter.on(eventType, (jobToExecute: JobJSON) => {
                 this.increaseCurrentType(jobToExecute.type);
@@ -226,44 +218,12 @@ class DBDequeur implements DBDequeuerInterface{
                 }
             });
             if (limit && typeof limit === 'string' && limit.length >= 4) {
-                const infos = limit.toLowerCase().split('/');
-                const maxOnPeriod = (infos.length === 2 && parseInt(infos[0], 10)) || null;
-                console.log('maxOnPeriod', maxOnPeriod);
-                const delayNumber = (infos.length === 2 && infos[1].match(/\d+/g) && infos[1].match(/\d+/g)[0]
-                    && parseInt(infos[1].match(/\d+/g)[0])) || 1;
-                const delayType = (infos.length === 2 && infos[1].replace(/\d+/g, '').toLowerCase()) || null;
-                console.log(maxOnPeriod);
-                console.log(delayType);
-                console.log(delayNumber);
-                if (maxOnPeriod && delayNumber && delayType && ['second', 'minute', 'hour', 'day', 'week', 'month'].includes(delayType)) {
-                    this.eventsList[eventType].maxOnPeriod = maxOnPeriod;
-                    this.eventsList[eventType].currentOnPeriod = 0;
-                    let delay = delayNumber;
-                    switch (delayType) {
-                        case 'second':
-                            delay = delay * 1000;
-                            break;
-                        case 'minute':
-                            delay = delay * 1000 * 60;
-                            break;
-                        case 'hour':
-                            delay = delay * 1000 * 60 * 60;
-                            break;
-                        case 'day':
-                            delay = delay * 1000 * 60 * 60 * 24;
-                            break;
-                        case 'week':
-                            delay = delay * 1000 * 60 * 60 * 24 * 7;
-                            break;
-                        case 'month':
-                            delay = delay * 1000 * 60 * 60 * 24 * 30;
-                            break;
-                        default:
-                            delay = 0;
-                            break;
-                    }
-                    if (delay > 0) {
-                        this.emitter.emit(DBDequeur.JobTypes.resetPeriodCount, { event: eventType, delay });
+                const rateLimit = getRateLimitFromStr(limit);
+                if (rateLimit) {
+                    this.eventsList[eventType].maxOnPeriod = rateLimit.maxOnPeriod;
+                    if (rateLimit.delay > 0) {
+                        this.eventsList[eventType].delay = rateLimit.delay;
+                        this.emitter.emit(DBDequeur.JobTypes.resetPeriodCount, { event: eventType, delay: rateLimit.delay });
                     }
                 }
             }
