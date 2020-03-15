@@ -107,15 +107,17 @@ class DBDequeur implements DBDequeuerInterface{
             this.timer = null;
         }
     }
-    async add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number): Promise<void> {
+    async add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number, priority?: number): Promise<void> {
         const jobParams: {
             type: string,
             data: any,
             scheduledAt?: number,
             customIdentifier?: string | number,
+            priority?: number,
         } = {
             type: jobType,
             data,
+            priority: priority || 1,
         };
         if (typeof scheduledAt === 'number') {
             jobParams.scheduledAt = scheduledAt;
