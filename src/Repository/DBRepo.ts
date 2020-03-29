@@ -97,6 +97,15 @@ class DBRepo implements DBRepoInterface {
         }
         return this.collectionCursor;
     }
+    async deleteWithTypeAndCustomIdentifier(type: string, customIdentifier?: string): Promise<number> {
+        const toDel: {[k: string]: string} = { type };
+        if (customIdentifier) {
+            toDel.customIdentifier = customIdentifier;
+        }
+        const collection = await this.getCollection();
+        const delResult = await collection.deleteMany(toDel);
+        return delResult.deletedCount;
+    }
     async add(toAdd: JobJSON) {
         const toInsert = {
             ...toAdd,
