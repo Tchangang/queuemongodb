@@ -6,6 +6,7 @@ interface DBDequeuerInterface {
     stop: () => void,
     on: (eventType: string, max: number, callback: (job: JobJSON, complete?: () => Promise<void>, requeue?: () => Promise<void>) => any) => void,
     getAction: (customIdentifier: string | number) => Promise<Nullable<JobJSON>>,
+    deleteWithTypeAndCustomIdentifier: (type: string, customIdentifier?: string) => Promise<number>,
     // getNextJobs: () => Promise<void>,
 }
 
@@ -14,6 +15,7 @@ interface DBRepoInterface {
     dequeueJob: (jobType: string, quantity: number) => Promise<Array<JobJSON>>,
     getJob: (customIdentifier: string | number) => Promise<Nullable<JobJSON>>,
     checkForActionScheduled: (jobType: string, customIdentifier: string | number) => Promise<Nullable<JobJSON>>,
+    deleteWithTypeAndCustomIdentifier: (type: string, customIdentifier?: string) => Promise<number>,
     update: (toUpdate: JobJSON) => Promise<void>,
 }
 

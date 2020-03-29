@@ -192,6 +192,9 @@ class DBDequeur implements DBDequeuerInterface{
         }
         return this.db.checkForActionScheduled(type, customIdentifier);
     }
+    async deleteWithTypeAndCustomIdentifier(type: string, customIdentifier?: string) {
+        return this.db.deleteWithTypeAndCustomIdentifier(type, customIdentifier);
+    }
     on(eventType: string,
              max: number = 5,
              callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>,

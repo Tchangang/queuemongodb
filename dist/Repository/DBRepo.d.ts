@@ -7,6 +7,7 @@ declare class DBRepo implements DBRepoInterface {
     constructor(mongoUri: string, dbName: string, collectionName: string, expiredAt?: number);
     private waitUntilReady;
     private getCollection;
+    deleteWithTypeAndCustomIdentifier(type: string, customIdentifier?: string): Promise<number>;
     add(toAdd: JobJSON): Promise<void>;
     getJob(customIdentifier: string | number): Promise<null | JobJSON>;
     checkForActionScheduled(type: string, customIdentifier: string | number): Promise<null | JobJSON>;
