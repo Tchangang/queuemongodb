@@ -35,11 +35,12 @@ declare class DBDequeur implements DBDequeuerInterface {
         maxRetry?: number;
         refreshDelay?: number;
         dbRepo?: DBRepoInterface;
+        jobShouldBeDeletedAfter?: number;
     });
     private removeOldJob;
     private getNextJobs;
     stop(): void;
-    add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number): Promise<void>;
+    add(jobType: string, data: any, scheduledAt?: number, customIdenfitier?: string | number, priority?: number): Promise<void>;
     private decreaseCurrentType;
     private increaseCurrentType;
     private complete;

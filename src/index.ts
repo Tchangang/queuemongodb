@@ -37,6 +37,7 @@ class DBDequeur implements DBDequeuerInterface{
                     maxRetry?: number,
                     refreshDelay?: number,
                     dbRepo?: DBRepoInterface,
+                    jobShouldBeDeletedAfter?: number,
                 }) {
         this.emitter = new EventEmitter();
         this.emitter.on(DBDequeur.JobTypes.dequeue, () => {
@@ -57,7 +58,7 @@ class DBDequeur implements DBDequeuerInterface{
             this.refreshDelay = params.refreshDelay;
         }
         if (!params.dbRepo) {
-            this.db = new DBRepo(this.mongoURI, this.dbName, this.collectionName);
+            this.db = new DBRepo(this.mongoURI, this.dbName, this.collectionName, );
         } else {
             this.db = params.dbRepo;
         }
@@ -191,11 +192,11 @@ class DBDequeur implements DBDequeuerInterface{
         }
         return this.db.checkForActionScheduled(type, customIdentifier);
     }
-    async on(eventType: string,
+    on(eventType: string,
              max: number = 5,
              callback: (job: JobJSON, complete: (successParams?: any, results?: any) => Promise<void>,
                 requeue: (failedParams?: any) => Promise<void>) => any,
-             limit?: string): Promise<void> {
+             limit?: string): void {
         if (!this.eventsList[eventType]) {
             this.eventsList[eventType] = {
                 max,
@@ -233,3 +234,7 @@ class DBDequeur implements DBDequeuerInterface{
     }
 }
 export = DBDequeur;
+
+// 1) Pouvoir voir les jobs faits
+// 2) Pouvoir voir les jobs en cours
+// 3) Pouvoir voir les jobs à faire

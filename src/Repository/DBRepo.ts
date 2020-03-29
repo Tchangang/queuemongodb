@@ -13,7 +13,8 @@ class DBRepo implements DBRepoInterface {
     private collectionCursor: Nullable<Collection>;
     constructor(mongoUri: string,
                 dbName: string,
-                collectionName: string) {
+                collectionName: string,
+                expiredAt?: number) {
         if (!mongoUri) {
             throw new Error('Missing mongoUri');
         }
@@ -36,6 +37,28 @@ class DBRepo implements DBRepoInterface {
                 clients[identifier] = client;
                 this.client = client.db(dbName);
                 this.collectionCursor = this.client.collection(collectionName);
+                this.collectionCursor.indexes()
+                    .then((indexes) => {
+                        const createdAtIndex = indexes.filter(index => index && index.name === 'createdAtExpired')[0];
+                        console.log('createdATINDEX', createdAtIndex);
+                        if (!createdAtIndex) {
+                            return this.collectionCursor.createIndex({ createdAt: -1 },
+                               { expireAfterSeconds: expiredAt || 3600 * 48, name: 'createdAtExpired' });
+                        }
+                        if (expiredAt && createdAtIndex.expireAfterSeconds !== expiredAt) {
+                            return this.client.command({ collMod: collectionName,
+                                index: { keyPattern: { createdAt: -1 },
+                                    expireAfterSeconds: expiredAt,
+                                },
+                            });
+                        }
+                    });
+                this.collectionCursor.createIndex( { customIdentifier: 1 }, { name: 'customIdentifier' } )
+                    .then(() => {})
+                    .catch(() => {});
+                this.collectionCursor.createIndex( { type: 1, customIdentifier: 1 }, { name: 'typeWithCustomIdentifier' } )
+                    .then(() => {})
+                    .catch(() => {});
                 this.collectionCursor.createIndex( {
                     type: 1, available: 1, inProgress: 1, scheduledAt: 1, customIdentifier: 1 }, { sparse: true } )
                     .then(() => {})

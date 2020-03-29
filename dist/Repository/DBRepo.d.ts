@@ -4,7 +4,7 @@ declare class DBRepo implements DBRepoInterface {
     private isReady;
     private client;
     private collectionCursor;
-    constructor(mongoUri: string, dbName: string, collectionName: string);
+    constructor(mongoUri: string, dbName: string, collectionName: string, expiredAt?: number);
     private waitUntilReady;
     private getCollection;
     add(toAdd: JobJSON): Promise<void>;
